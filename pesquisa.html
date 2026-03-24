@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pesquisa de Satisfação — Quintal de Trancoso</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f4f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+      color: #1a1a1a;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .header h1 {
+      font-size: 22px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 4px;
+    }
+    .header p {
+      font-size: 14px;
+      color: #666;
+    }
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid #e8e6e0;
+      padding: 2rem 1.75rem;
+      width: 100%;
+      max-width: 520px;
+    }
+    .progress-bar {
+      height: 4px;
+      background: #e8e6e0;
+      border-radius: 2px;
+      margin-bottom: 2rem;
+    }
+    .progress-fill {
+      height: 4px;
+      background: #1D9E75;
+      border-radius: 2px;
+      transition: width 0.4s ease;
+    }
+    .step { display: none; }
+    .step.active { display: block; }
+    .step-label {
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 6px;
+      letter-spacing: 0.04em;
+    }
+    .question {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 1.25rem;
+      line-height: 1.4;
+    }
+    .options { display: flex; flex-direction: column; gap: 8px; }
+    .opt {
+      padding: 11px 16px;
+      border: 1px solid #e0deda;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #333;
+      background: #fff;
+      transition: all 0.15s;
+    }
+    .opt:hover { border-color: #1D9E75; background: #f0faf6; }
+    .opt.selected { border-color: #1D9E75; background: #e1f5ee; color: #085041; font-weight: 500; }
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1.75rem;
+    }
+    .btn {
+      padding: 10px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid #e0deda;
+      background: #fff;
+      color: #333;
+      transition: all 0.15s;
+    }
+    .btn:hover { background: #f5f4f0; }
+    .btn.primary { background: #1D9E75; border-color: #1D9E75; color: #fff; }
+    .btn.primary:hover { background: #0F6E56; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .field {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1px solid #e0deda;
+      border-radius: 10px;
+      font-size: 14px;
+      color: #1a1a1a;
+      background: #fff;
+      margin-bottom: 10px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .field:focus { border-color: #1D9E75; }
+    .field::placeholder { color: #bbb; }
+    .field-hint {
+      font-size: 11px;
+      color: #aaa;
+      line-height: 1.5;
+      margin-top: 2px;
+    }
+    /* Roulette */
+    .roulette-wrap { text-align: center; padding: 0.5rem 0; }
+    .roulette-prompt {
+      font-size: 15px;
+      color: #555;
+      margin-bottom: 1.25rem;
+      line-height: 1.6;
+    }
+    .pointer { font-size: 30px; line-height: 1; margin-bottom: 4px; }
+    canvas#roulette {
+      border-radius: 50%;
+      border: 3px solid #1D9E75;
+      display: block;
+      margin: 0 auto 1rem;
+    }
+    .spin-btn {
+      padding: 13px 36px;
+      background: #1D9E75;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .spin-btn:hover { background: #0F6E56; }
+    .spin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .prize-display {
+      margin-top: 1rem;
+      font-size: 17px;
+      font-weight: 600;
+      min-height: 28px;
+      color: #0F6E56;
+    }
+    .saving-msg {
+      font-size: 12px;
+      color: #999;
+      margin-top: 6px;
+      min-height: 18px;
+    }
+    .skip-link {
+      font-size: 12px;
+      color: #aaa;
+      cursor: pointer;
+      text-decoration: underline;
+      margin-top: 1rem;
+      display: inline-block;
+    }
+    /* Thank you */
+    .thank { text-align: center; padding: 1.5rem 0.5rem; }
+    .thank-icon { font-size: 48px; margin-bottom: 1rem; }
+    .thank h2 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+    .thank p { color: #666; font-size: 14px; line-height: 1.7; }
+    /* Config panel */
+    .config-panel {
+      width: 100%;
+      max-width: 520px;
+      background: #fff;
+      border: 1px solid #e8e6e0;
+      border-radius: 16px;
+      padding: 1.25rem 1.75rem;
+      margin-bottom: 1rem;
+    }
+    .config-toggle {
+      font-size: 13px;
+      color: #999;
+      cursor: pointer;
+      text-align: center;
+      margin-bottom: 1rem;
+      text-decoration: underline;
+    }
+    .config-body { display: none; }
+    .config-body.open { display: block; }
+    .cfg-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .cfg-lbl { font-size: 12px; color: #888; min-width: 90px; }
+    .cfg-input {
+      flex: 1;
+      padding: 8px 10px;
+      border: 1px solid #e0deda;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #333;
+      outline: none;
+    }
+    .cfg-input:focus { border-color: #1D9E75; }
+    .cfg-input::placeholder { color: #ccc; }
+    .cfg-save {
+      padding: 8px 16px;
+      background: #1D9E75;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .cfg-save:hover { background: #0F6E56; }
+    .cfg-status { font-size: 11px; min-height: 16px; margin-top: 4px; }
+    @media (max-width: 480px) {
+      .card { padding: 1.5rem 1.25rem; }
+      .question { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>Quintal de Trancoso</h1>
+    <p>Sua opinião é muito importante para nós</p>
+  </div>
+
+  <!-- Config Airtable -->
+  <div class="config-panel">
+    <div class="config-toggle" onclick="toggleConfig()">⚙️ Configurar integração com Airtable</div>
+    <div class="config-body" id="configBody">
+      <div class="cfg-row">
+        <span class="cfg-lbl">Token API</span>
+        <input class="cfg-input" id="cfgToken" type="password" placeholder="patXXXXXX...">
+      </div>
+      <div class="cfg-row">
+        <span class="cfg-lbl">ID da Base</span>
+        <input class="cfg-input" id="cfgBase" placeholder="appXXXXXX...">
+      </div>
+      <div class="cfg-row">
+        <span class="cfg-lbl">ID da Table</span>
+        <input class="cfg-input" id="cfgTable" placeholder="tblXXXXXX...">
+        <button class="cfg-save" onclick="saveConfig()">Salvar</button>
+      </div>
+      <div class="cfg-status" id="cfgStatus"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="progress-bar"><div class="progress-fill" id="pbar" style="width:9%"></div></div>
+
+    <!-- 1 -->
+    <div class="step active" id="s1">
+      <div class="step-label">1 de 11</div>
+      <div class="question">Como você ficou sabendo do Quintal de Trancoso?</div>
+      <div class="options" id="q1">
+        <div class="opt" data-v="Instagram / Redes sociais">Instagram / Redes sociais</div>
+        <div class="opt" data-v="Anúncio pago (Google/Meta Ads)">Anúncio pago (Google, Meta Ads)</div>
+        <div class="opt" data-v="Indicação de amigos ou família">Indicação de amigos ou família</div>
+        <div class="opt" data-v="Vi ao passar pela rua">Vi ao passar pela rua</div>
+        <div class="opt" data-v="Já conhecia / retorno">Já conhecia / retorno</div>
+      </div>
+      <div class="nav"><span></span><button class="btn primary" id="n1" disabled onclick="next(1)">Próxima →</button></div>
+    </div>
+
+    <!-- 2 -->
+    <div class="step" id="s2">
+      <div class="step-label">2 de 11</div>
+      <div class="question">É a primeira vez que você visita o Quintal de Trancoso?</div>
+      <div class="options" id="q2">
+        <div class="opt" data-v="Sim, primeira visita">Sim, primeira visita</div>
+        <div class="opt" data-v="Não, já vim antes">Não, já vim antes</div>
+      </div>
+      <div class="nav"><button class="btn" onclick="back(2)">← Voltar</button><button class="btn primary" id="n2" disabled onclick="next(2)">Próxima →</button></div>
+    </div>
+
+    <!-- 3 -->
+    <div class="step" id="s3">
+      <div class="step-label">3 de 11</div>
+      <div class="question">Qual é o motivo da sua visita hoje?</div>
+      <div class="options" id="q3">
+        <div class="opt" data-v="Aniversário">Aniversário</div>
+        <div class="opt" data-v="Outra comemoração especial">Outra comemoração especial</div>
+        <div class="opt" data-v="Fim de semana / passeio normal">Fim de semana / passeio normal</div>
+        <div class="opt" data-v="Jogo de futebol">Jogo de futebol</div>
+        <div class="opt" data-v="Outro motivo">Outro motivo</div>
+      </div>
+      <div class="nav"><button class="btn" onclick="back(3)">← Voltar</button><button class="btn primary" id="n3" disabled onclick="next(3)">Próxima →</button></div>
+    </div>
+
+    <!-- 4 -->
+    <div class="step" id="s4">
+      <div class="step-label">4 de 11</div>
+      <div class="question">O que mais influenciou sua decisão de vir hoje?</div>
+      <div class="options" id="q4">
+        <div class="opt" data-v="Localização / ambiente">Localização / ambiente</div>
+        <div class="opt" data-v="Recomendação de alguém">Recomendação de alguém</div>
+        <div class="opt" data-v="Post ou anúncio nas redes sociais">Post ou anúncio nas redes sociais</div>
+        <div class="opt" data-v="Cardápio / tipo de comida">Cardápio / tipo de comida</div>
+        <div class="opt" data-v="Promoção ou desconto">Promoção ou desconto</div>
+        <div class="opt" data-v="Área kids">Área kids</div>
+      </div>
+      <div class="nav"><button class="btn" onclick="back(4)">← Voltar</button><button class="btn primary" id="n4" disabled onclick="next(4)">Próxima →</button></div>
+    </div>
+
+    <!-- 5 -->
+    <div class="step" id="s5">
+      <div class="step-label">5 de 11</div>
+      <div class="question">Você já nos seguia no Instagram antes de vir?</div>
+      <div class="options" id="q5">
+        <div class="opt" data-v="Sim, já seguia">Sim, já seguia</div>
+        <div class="opt" data-v="Não seguia, mas vou seguir agora">Não seguia, mas vou seguir agora</div>
+        <div class="opt" data-v="Não tenho Instagram">Não tenho Instagram</div>
+      </div>
+      <div class="nav"><button class="btn" onclick="back(5)">← Voltar</button><button class="btn primary" id="n5" disabled onclick="next(5)">Próxima →</button></div>
+    </div>
+
+    <!-- 6 -->
+    <div class="step" id="s6">
+      <div class="step-label">6 de 11</div>
+      <div class="question">Você veio acompanhado de crianças?</div>
+      <div class="options" id="q6">
+        <div class="opt" data-v="Sim — área kids foi decisiva">Sim, e a área kids foi decisiva na escolha</div>
+        <div class="opt" data-v="Sim — área kids não influenciou">Sim, mas a área kids não influenciou</div>
+        <div class="opt" data-v="Não vim com crianças">Não vim com crianças</div>
+      </div>
+      <div class="nav"><button class="btn" onclick="back(6)">← Voltar</button><button class="btn primary" id="n6" disabled onclick="next(6)">Próxima →</button></div>
+    </div>
+
+    <!-- 7 -->
+    <div class="step" id="s7">
+      <div class="step-label">7 de 11</div>
+      <div class="question">Como você avalia o atendimento?</div>
+      <div class="options" id="q7">
+        <div class="opt" data-v="Ruim">Ruim</div>
+        <div class="opt" data-v="Regular">Regular</div>
+        <div class="opt" data-v="Bom">Bom</div>
+        <div class="opt" data-v="Muito bom">Muito bom</div>
+        <div class="opt" data-v="Excelente">Excelente</div>
+      </div>
+      <div class="nav"><button class="btn" onclick="back(7)">← Voltar</button><button class="btn primary" id="n7" disabled onclick="next(7)">Próxima →</button></div>
+    </div>
+
+    <!-- 8 -->
+    <div class="step" id="s8">
+      <div class="step-label">8 de 11</div>
+      <div class="question">Como você avalia a comida?</div>
+      <div class="options" id="q8">
+        <div class="opt" data-v="Ruim">Ruim</div>
+        <div class="opt" data-v="Regular">Regular</div>
+        <div class="opt" data-v="Boa">Boa</div>
+        <div class="opt" data-v="Muito boa">Muito boa</div>
+        <div class="opt" data-v="Excelente">Excelente</div>
+      </div>
+      <div class="nav"><button class="btn" onclick="back(8)">← Voltar</button><button class="btn primary" id="n8" disabled onclick="next(8)">Próxima →</button></div>
+    </div>
+
+    <!-- 9 -->
+    <div class="step" id="s9">
+      <div class="step-label">9 de 11</div>
+      <div class="question">Como você avalia o preço praticado?</div>
+      <div class="options" id="q9">
+        <div class="opt" data-v="Barato — melhor que o esperado">Barato — melhor do que o esperado</div>
+        <div class="opt" data-v="Justo — preço e qualidade combinam">Justo — preço e qualidade combinam</div>
+        <div class="opt" data-v="Caro — acima do esperado">Caro — acima do esperado</div>
+      </div>
+      <div class="nav"><button class="btn" onclick="back(9)">← Voltar</button><button class="btn primary" id="n9" disabled onclick="next(9)">Próxima →</button></div>
+    </div>
+
+    <!-- 10 -->
+    <div class="step" id="s10">
+      <div class="step-label">10 de 11</div>
+      <div class="question">Para finalizarmos, deixe seus dados</div>
+      <input class="field" id="fname" type="text" placeholder="Seu nome completo" oninput="checkFields()">
+      <input class="field" id="femail" type="email" placeholder="Seu e-mail">
+      <input class="field" id="fphone" type="tel" placeholder="Seu WhatsApp (com DDD)">
+      <p class="field-hint">Seus dados serão usados apenas para promoções e novidades do Quintal de Trancoso.</p>
+      <div class="nav"><button class="btn" onclick="back(10)">← Voltar</button><button class="btn primary" id="n10" disabled onclick="next(10)">Enviar →</button></div>
+    </div>
+
+    <!-- 11 Roleta -->
+    <div class="step" id="s11">
+      <div class="step-label">11 de 11 — Última etapa!</div>
+      <div class="roulette-wrap">
+        <div class="roulette-prompt">Obrigado por responder!<br>Quer girar a roleta e ganhar um prêmio?</div>
+        <div class="pointer">▼</div>
+        <canvas id="roulette" width="260" height="260"></canvas>
+        <div><button class="spin-btn" id="spinBtn" onclick="spin()">Girar a roleta!</button></div>
+        <div class="prize-display" id="prizeDisplay"></div>
+        <div class="saving-msg" id="savingMsg"></div>
+        <br>
+        <span class="skip-link" onclick="submitAndFinish('—')">Não, obrigado</span>
+      </div>
+    </div>
+
+    <!-- Obrigado -->
+    <div class="step" id="sthanks">
+      <div class="thank">
+        <div class="thank-icon">🎉</div>
+        <h2>Muito obrigado!</h2>
+        <p>Sua avaliação foi registrada com sucesso.<br>Esperamos te ver em breve no<br><strong>Quintal de Trancoso!</strong></p>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const TOTAL = 11;
+    let cfg = { token: '', base: '', table: '' };
+    const answers = {};
+
+    function toggleConfig() {
+      const b = document.getElementById('configBody');
+      b.classList.toggle('open');
+    }
+
+    function saveConfig() {
+      cfg.token = document.getElementById('cfgToken').value.trim();
+      cfg.base  = document.getElementById('cfgBase').value.trim();
+      cfg.table = document.getElementById('cfgTable').value.trim();
+      const st = document.getElementById('cfgStatus');
+      if (cfg.token && cfg.base && cfg.table) {
+        st.textContent = '✓ Integração configurada com sucesso!';
+        st.style.color = '#0F6E56';
+        setTimeout(() => { document.getElementById('configBody').classList.remove('open'); }, 1500);
+      } else {
+        st.textContent = 'Preencha os três campos para ativar.';
+        st.style.color = '#D85A30';
+      }
+    }
+
+    function setProgress(s) {
+      document.getElementById('pbar').style.width = Math.round((s / TOTAL) * 100) + '%';
+    }
+
+    function setupOpts(gid, nid) {
+      document.querySelectorAll('#' + gid + ' .opt').forEach(o => {
+        o.addEventListener('click', function () {
+          document.querySelectorAll('#' + gid + ' .opt').forEach(x => x.classList.remove('selected'));
+          this.classList.add('selected');
+          answers[gid] = this.dataset.v;
+          document.getElementById(nid).disabled = false;
+        });
+      });
+    }
+    for (let i = 1; i <= 9; i++) setupOpts('q' + i, 'n' + i);
+
+    function checkFields() {
+      document.getElementById('n10').disabled = document.getElementById('fname').value.trim().length < 2;
+    }
+
+    function showStep(n) {
+      document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+      document.getElementById('s' + n).classList.add('active');
+      setProgress(n);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function next(cur) {
+      if (cur === 10) {
+        answers.name  = document.getElementById('fname').value;
+        answers.email = document.getElementById('femail').value;
+        answers.phone = document.getElementById('fphone').value;
+        showStep(11);
+        drawRoulette(0);
+        return;
+      }
+      showStep(cur + 1);
+    }
+
+    function back(cur) { showStep(cur - 1); }
+
+    async function submitAndFinish(prize) {
+      answers.prize = prize;
+      const msg = document.getElementById('savingMsg');
+      if (cfg.token && cfg.base && cfg.table) {
+        msg.textContent = 'Salvando no Airtable...';
+        msg.style.color = '#999';
+        try {
+          const res = await fetch(`https://api.airtable.com/v0/${cfg.base}/${cfg.table}`, {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer ' + cfg.token,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              fields: {
+                'Data':               new Date().toLocaleString('pt-BR'),
+                'Como Conheceu':      answers.q1,
+                'Primeira Visita':    answers.q2,
+                'Motivo':             answers.q3,
+                'Influência Decisão': answers.q4,
+                'Segue Instagram':    answers.q5,
+                'Kids':               answers.q6,
+                'Atendimento':        answers.q7,
+                'Comida':             answers.q8,
+                'Preço':              answers.q9,
+                'Nome':               answers.name,
+                'Email':              answers.email,
+                'WhatsApp':           answers.phone,
+                'Prêmio':             prize
+              }
+            })
+          });
+          if (res.ok) {
+            msg.textContent = '✓ Salvo com sucesso!';
+            msg.style.color = '#0F6E56';
+          } else {
+            msg.textContent = 'Erro ao salvar. Verifique o token e os IDs.';
+            msg.style.color = '#D85A30';
+          }
+        } catch (e) {
+          msg.textContent = 'Erro de conexão com o Airtable.';
+          msg.style.color = '#D85A30';
+        }
+      }
+      setTimeout(() => {
+        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+        document.getElementById('sthanks').classList.add('active');
+        setProgress(TOTAL);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 1600);
+    }
+
+    // Roulette
+    const prizes = [
+      { label: 'Desconto 10%',   color: '#1D9E75' },
+      { label: 'Tente outra vez', color: '#888780' },
+      { label: 'Desconto 5%',    color: '#378ADD' },
+      { label: 'Sobremesa',      color: '#D85A30' },
+      { label: 'Tente outra vez', color: '#888780' },
+      { label: 'Um drink',       color: '#BA7517' },
+      { label: 'Tente outra vez', color: '#888780' },
+      { label: 'Desconto 5%',    color: '#378ADD' },
+    ];
+    const n = prizes.length, arc = (2 * Math.PI) / n;
+    let spinning = false, currentAngle = 0;
+
+    function drawRoulette(angle) {
+      const c = document.getElementById('roulette');
+      const ctx = c.getContext('2d');
+      const cx = 130, cy = 130, r = 120;
+      ctx.clearRect(0, 0, 260, 260);
+      prizes.forEach((p, i) => {
+        const s = angle + i * arc - Math.PI / 2, e = s + arc;
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, s, e); ctx.closePath();
+        ctx.fillStyle = p.color; ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.save(); ctx.translate(cx, cy); ctx.rotate(s + arc / 2);
+        ctx.textAlign = 'right'; ctx.fillStyle = '#fff';
+        ctx.font = 'bold 11px sans-serif'; ctx.fillText(p.label, r - 8, 4);
+        ctx.restore();
+      });
+      ctx.beginPath(); ctx.arc(cx, cy, 16, 0, 2 * Math.PI);
+      ctx.fillStyle = '#fff'; ctx.fill();
+      ctx.strokeStyle = '#1D9E75'; ctx.lineWidth = 2; ctx.stroke();
+    }
+
+    function spin() {
+      if (spinning) return;
+      spinning = true;
+      document.getElementById('spinBtn').disabled = true;
+      document.getElementById('prizeDisplay').textContent = '';
+      const extra = (5 + Math.floor(Math.random() * 4)) * 2 * Math.PI;
+      const idx = Math.floor(Math.random() * n);
+      const target = extra + (2 * Math.PI - (idx * arc + arc / 2));
+      const dur = 4000, start = performance.now(), sa = currentAngle;
+      function frame(now) {
+        const t = Math.min((now - start) / dur, 1), ease = 1 - Math.pow(1 - t, 4);
+        currentAngle = sa + target * ease;
+        drawRoulette(currentAngle);
+        if (t < 1) { requestAnimationFrame(frame); }
+        else {
+          spinning = false;
+          const norm = ((currentAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+          const ptr = (3 * Math.PI / 2 - norm + 2 * Math.PI) % (2 * Math.PI);
+          const wi = Math.floor(ptr / arc) % n;
+          const prize = prizes[wi];
+          const pd = document.getElementById('prizeDisplay');
+          if (prize.label === 'Tente outra vez') {
+            pd.textContent = 'Quase lá! Tente na próxima visita.';
+            pd.style.color = '#999';
+          } else {
+            pd.textContent = 'Parabéns! Você ganhou: ' + prize.label + '!';
+            pd.style.color = '#0F6E56';
+          }
+          submitAndFinish(prize.label);
+        }
+      }
+      requestAnimationFrame(frame);
+    }
+
+    drawRoulette(0);
+    setProgress(1);
+  </script>
+</body>
+</html>
